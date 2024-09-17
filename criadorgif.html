@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image to GIF Converter</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        .container {
+            width: 80%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            color: #333;
+        }
+
+        input[type="file"] {
+            margin: 20px 0;
+            font-size: 16px;
+        }
+
+        .slider-container {
+            margin: 20px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .slider-container label {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #555;
+        }
+
+        .slider-container input[type="range"] {
+            width: 80%;
+            max-width: 600px;
+        }
+
+        .slider-container span {
+            font-size: 16px;
+            margin-top: 10px;
+            color: #555;
+        }
+
+        button {
+            padding: 15px 25px;
+            font-size: 18px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: #fff;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        ul li {
+            background-color: #e0e0e0;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: grab;
+        }
+
+        #result {
+            margin-top: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #result img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        #downloadButton {
+            display: none;
+            margin-top: 20px;
+            padding: 15px 25px;
+            font-size: 18px;
+            cursor: pointer;
+            text-decoration: none;
+            border: none;
+            border-radius: 5px;
+            background-color: #2196F3;
+            color: #fff;
+            transition: background-color 0.3s;
+        }
+
+        #downloadButton:hover {
+            background-color: #0b7dda;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Image to GIF Converter</h1>
+
+        <input type="file" id="imageInput" accept="image/*" multiple>
+        <ul id="fileList"></ul>
+        <div class="slider-container">
+            <label for="speedSlider">Adjust Speed (seconds per frame):</label>
+            <input type="range" id="speedSlider" min="0.1" max="2" step="0.1" value="0.5">
+            <span id="speedValue">0.5</span> seconds
+        </div>
+        <button onclick="createGif()">Create GIF</button>
+
+        <div id="result"></div>
+        <a id="downloadButton" download="animated.gif">Download GIF</a>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gifshot/0.3.2/gifshot.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+    <script>
+        const imageInput = document.getElementById('imageInput');
+        const fileList = document.getElementById('fileList');
+        const result = document.getElementById('result');
+        const speedSlider = document.getElementById('speedSlider');
+        const speedValue = document.getElementById('speedValue');
+        const downloadButton = document.getElementById('downloadButton');
+        let imageUrls = [];
+
+        // Função para reordenar as imagens
+        new Sortable(fileList, {
+            animation: 150,
+            onEnd: function () {
+                const reorderedUrls = [];
+                const listItems = fileList.querySelectorAll('li');
+                listItems.forEach((item, index) => {
+                    reorderedUrls.push(imageUrls[parseInt(item.getAttribute('data-index'))]);
+                });
+                imageUrls = reorderedUrls;
+            }
+        });
+
+        imageInput.addEventListener('change', function(event) {
+            fileList.innerHTML = '';
+            imageUrls = [];
+            const files = Array.from(event.target.files);
+
+            files.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imageUrls.push(e.target.result);
+
+                    // Mostra o nome do arquivo com possibilidade de drag
+                    const listItem = document.createElement('li');
+                    listItem.textContent = file.name;
+                    listItem.setAttribute('data-index', index);  // Índice para referência
+                    fileList.appendChild(listItem);
+                };
+                reader.readAsDataURL(file);
+            });
+        });
+
+        speedSlider.addEventListener('input', function() {
+            speedValue.textContent = speedSlider.value;
+        });
+
+        function createGif() {
+            if (imageUrls.length === 0) {
+                alert('Please upload some images first!');
+                return;
+            }
+
+            const interval = parseFloat(speedSlider.value);
+
+            gifshot.createGIF({
+                images: imageUrls,
+                gifWidth: 1920,  // Full HD width
+                gifHeight: 1080, // Full HD height
+                interval: interval,
+                numFrames: imageUrls.length,
+                quality: 10 // Maior qualidade possível
+            }, function(obj) {
+                if (!obj.error) {
+                    const img = document.createElement('img');
+                    img.src = obj.image;
+                    result.innerHTML = '';
+                    result.appendChild(img);
+
+                    // Configura o botão de download
+                    const blob = dataURLToBlob(obj.image);
+                    const url = URL.createObjectURL(blob);
+                    downloadButton.href = url;
+                    downloadButton.style.display = 'inline-block';
+                } else {
+                    console.error('GIF creation failed: ' + obj.errorMsg);
+                    alert('Failed to create GIF. Please try again.');
+                }
+            });
+        }
+
+        // Função para converter dataURL em Blob
+        function dataURLToBlob(dataURL) {
+            const byteString = atob(dataURL.split(',')[1]);
+            const mimeString = dataURL.split(',')[0].split(':')[1].split(';')[0];
+            const ab = new ArrayBuffer(byteString.length);
+            const ia = new Uint8Array(ab);
+            for (let i = 0; i < byteString.length; i++) {
+                ia[i] = byteString.charCodeAt(i);
+            }
+            return new Blob([ab], { type: mimeString });
+        }
+    </script>
+</body>
+</html>
