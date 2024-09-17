@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        .container {
+            width: 50%;
+            margin: auto;
+            padding: 20px;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #3498db;
+            margin-bottom: 15px;
+            font-size: 24px;
+        }
+        .formularioItem {
+            background-color: #ffffff;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        label {
+            font-weight: 600;
+            display: block;
+            margin-bottom: 3px;
+            color: #333;
+            font-size: 14px;
+        }
+        input[type="text"] {
+            width: calc(100% - 40px);
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            box-sizing: border-box;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        .important-checkbox {
+            vertical-align: middle;
+            margin-left: 5px;
+        }
+        button {
+            display: inline-block;
+            height: 40px;
+            background-color: #3498db;
+            color: white;
+            padding: 0 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-right: 5px;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #resultado {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #ffffff;
+            border-radius: 6px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Formulário Caixa Ticket</h1>
+        <div class="formularioItem">
+            <form class="meuFormulario">
+                <div>
+                    <label for="numeroCaixa">Número da Caixa:</label>
+                    <input type="text" id="numeroCaixa" name="Número da Caixa">
+                    <input type="checkbox" class="important-checkbox" id="importantNumeroCaixa">
+                </div>
+
+                <div>
+                    <label for="interfaceConexao">Interface de conexão:</label>
+                    <input type="text" id="interfaceConexao" name="Interface de conexão">
+                    <input type="checkbox" class="important-checkbox" id="importantInterfaceConexao">
+                </div>
+
+                <div>
+                    <label for="statusCaixa">Status da caixa:</label>
+                    <input type="text" id="statusCaixa" name="Status da caixa">
+                    <input type="checkbox" class="important-checkbox" id="importantStatusCaixa">
+                </div>
+
+                <div>
+                    <label for="sinal">Sinal:</label>
+                    <input type="text" id="sinal" name="Sinal">
+                    <input type="checkbox" class="important-checkbox" id="importantSinal">
+                </div>
+
+                <div>
+                    <label for="endereco">Endereço:</label>
+                    <input type="text" id="endereco" name="Endereço">
+                    <input type="checkbox" class="important-checkbox" id="importantEndereco">
+                </div>
+
+                <div>
+                    <label for="solicitante">Solicitante:</label>
+                    <input type="text" id="solicitante" name="Solicitante">
+                    <input type="checkbox" class="important-checkbox" id="importantSolicitante">
+                </div>
+
+                <div>
+                    <label for="descricao">Descrição:</label>
+                    <input type="text" id="descricao" name="Descrição">
+                    <input type="checkbox" class="important-checkbox" id="importantDescricao">
+                </div>
+
+                <div>
+                    <label for="protocolo">Protocolo:</label>
+                    <input type="text" id="protocolo" name="Protocolo">
+                    <input type="checkbox" class="important-checkbox" id="importantProtocolo">
+                </div>
+            </form>
+        </div>
+
+        <button type="button" onclick="gerarResultado()">Gerar</button>
+        <button type="button" onclick="copiarResultado()">Copiar</button>
+
+        <div id="resultado"></div>
+    </div>
+
+    <script>
+        function gerarResultado() {
+            var formulario = document.querySelector('.meuFormulario');
+            var resultado = '';
+            var inputs = formulario.querySelectorAll('input[type="text"]');
+            inputs.forEach(function(input) {
+                var checkbox = document.getElementById('important' + input.id.charAt(0).toUpperCase() + input.id.slice(1));
+                var valorCampo = input.value.trim();
+
+                // Verifica se já contém asteriscos para evitar duplicação
+                if (checkbox && checkbox.checked && valorCampo !== '') {
+                    // Adiciona asteriscos apenas se não houver no valor
+                    if (!valorCampo.startsWith('**') && !valorCampo.endsWith('**')) {
+                        valorCampo = '*' + valorCampo + '*';
+                    }
+                    resultado += input.name + ': ' + valorCampo + '<br>';
+                } else if (valorCampo !== '') {
+                    resultado += input.name + ': ' + valorCampo + '<br>';
+                }
+            });
+            document.getElementById('resultado').innerHTML = resultado;
+        }
+
+        function copiarResultado() {
+            var range = document.createRange();
+            range.selectNode(document.getElementById('resultado'));
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            document.execCommand('copy');
+            window.getSelection().removeAllRanges();
+            alert('Resultado copiado!');
+        }
+    </script>
+</body>
+</html>
