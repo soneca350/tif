@@ -99,13 +99,11 @@
 <body>
 
     <div class="container">
-        <h1>Gerador de Planilha ONU/SERIAL</h1>
-        <p>Por favor, carregue dois arquivos .TXT:</p>
-        <p><strong>Arquivo 1:</strong> Contendo o MAC (última coluna) e a Interface (primeira coluna).</p>
-        <p><strong>Arquivo 2:</strong> Contendo o Serial relacionado ao mesmo ID ONU do primeiro arquivo.</p>
+        <h1>Carregar Arquivos TXT</h1>
         <input type="file" id="file1" accept=".txt" onchange="handleFileUpload(event, 1)">
         <input type="file" id="file2" accept=".txt" onchange="handleFileUpload(event, 2)">
-        <button id="startButton" onclick="processFiles()">Começar</button>
+        <button id="startButton" class="hidden" onclick="processFiles()">Começar</button>
+        <button id="loadExcelButton" onclick="loadExcel()">Carregar Planilha</button>
 
         <div id="resultSection" class="hidden">
             <h2>Processar</h2>
@@ -117,9 +115,8 @@
             <button onclick="saveInfo()">Pronto</button>
             <button onclick="skipInfo()">Depois eu faço</button>
             <button onclick="restartProcess()">Recomeçar</button>
-            <button onclick="generateExcel()">Gerar Excel</button> <!-- Botão para gerar o Excel -->
+            <button onclick="generateExcel()">Gerar Excel</button>
 
-            <!-- Barra de progresso -->
             <div class="progress-bar">
                 <div id="progressBarFill" class="progress-bar-fill">0%</div>
             </div>
@@ -157,8 +154,11 @@
         }
 
         function checkIfReady() {
+            if (file1Data.length > 0 || file2Data.length > 0) {
+                document.getElementById('loadExcelButton').classList.add('hidden');
+            }
             if (file1Data.length > 0 && file2Data.length > 0) {
-                document.getElementById('startButton').classList.add('hidden');
+                document.getElementById('startButton').classList.remove('hidden');
                 document.getElementById('resultSection').classList.remove('hidden');
                 updateProgress();
                 showNextItem();
@@ -229,40 +229,62 @@
             }
         }
 
+        function copyToClipboard(id) {
+            const textToCopy = document.getElementById(id).textContent.split(': ')[1];
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                alert('Texto copiado: ' + textToCopy);
+            });
+        }
+
         function restartProcess() {
             currentIndex = 0;
-            skippedData = [];
             processedData = [];
-            document.getElementById('progressBarFill').style.width = '0%';
-            document.getElementById('progressBarFill').textContent = '0%';
+            skippedData = [];
             document.getElementById('skippedItemsSection').classList.add('hidden');
+            updateProgress();
             showNextItem();
         }
 
         function generateExcel() {
-            const data = processedData.concat(skippedData).map(item => ({
-                'Interface': item.interfaceName,
-                'MAC': item.mac,
-                'Serial': item.serial,
-                'Foi Feito?': item.status || 'Não'
-            }));
-
-            const ws = XLSX.utils.json_to_sheet(data);
+            const worksheetData = processedData.map(item => [item.interfaceName, item.mac, item.serial, item.status]);
+            const skippedWorksheetData = skippedData.map(item => [item.interfaceName, item.mac, item.serial]);
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'Planilha');
-
-            XLSX.writeFile(wb, 'planilha_onu_serial.xlsx');
+            const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+            const skippedWs = XLSX.utils.aoa_to_sheet(skippedWorksheetData);
+            XLSX.utils.book_append_sheet(wb, ws, "Dados Processados");
+            XLSX.utils.book_append_sheet(wb, skippedWs, "Itens Pulados");
+            XLSX.writeFile(wb, "resultados.xlsx");
         }
 
-        function copyToClipboard(elementId) {
-            const textToCopy = document.getElementById(elementId).textContent.split(': ')[1];
-            navigator.clipboard.writeText(textToCopy).then(() => {
-                alert('Copiado para a área de transferência: ' + textToCopy);
-            }, (err) => {
-                console.error('Erro ao copiar texto: ', err);
-            });
+        function loadExcel() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.xlsx';
+            input.onchange = (event) => {
+                const file = event.target.files[0];
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                    processedData = jsonData.map(item => ({
+                        interfaceName: item['Interface'],
+                        mac: item['MAC'],
+                        serial: item['Serial'],
+                        status: item['Status']
+                    }));
+
+                    currentIndex = processedData.length; // Atualiza o índice atual para continuar de onde parou
+                    updateProgress();
+                    alert('Planilha carregada com sucesso!');
+                };
+                reader.readAsArrayBuffer(file);
+            };
+            input.click();
         }
     </script>
-
 </body>
 </html>
