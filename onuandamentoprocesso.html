@@ -232,7 +232,7 @@
         function copyToClipboard(id) {
             const textToCopy = document.getElementById(id).textContent.split(': ')[1];
             navigator.clipboard.writeText(textToCopy).then(() => {
-                alert('Texto copiado: ' + textToCopy);
+                
             });
         }
 
