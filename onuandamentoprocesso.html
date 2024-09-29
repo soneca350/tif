@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Processar Arquivos TXT</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha384-k6RqeWeci5ZR/Lv4MR0sA0FfDOMZx4A8FFjp7V+2y0ZDAUe3sG61mHl6bmkXz8H" crossorigin="anonymous">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            background-color: #f0f4f8;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 30px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        h1 {
+            color: #4CAF50;
+            margin-bottom: 20px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        input[type="file"] {
+            display: block;
+            margin: 15px auto;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            transition: border-color 0.3s;
+            width: 100%;
+        }
+        input[type="file"]:hover {
+            border-color: #4CAF50;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin: 10px;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .hidden {
+            display: none;
+        }
+        .progress-bar {
+            width: 100%;
+            background-color: #f3f3f3;
+            border-radius: 6px;
+            margin-top: 20px;
+        }
+        .progress-bar-fill {
+            height: 30px;
+            width: 0%;
+            background-color: #4caf50;
+            text-align: center;
+            color: white;
+            line-height: 30px;
+            border-radius: 6px;
+        }
+        p {
+            font-size: 18px;
+            margin: 10px 0;
+        }
+        #skippedItemsSection {
+            margin-top: 20px;
+        }
+        .copy-button {
+            cursor: pointer;
+            background-color: transparent;
+            border: none;
+            color: #4CAF50;
+            text-decoration: underline;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        .skipped-item {
+            padding: 5px;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Carregar Arquivos TXT</h1>
+        <input type="file" id="file1" accept=".txt" onchange="handleFileUpload(event, 1)">
+        <input type="file" id="file2" accept=".txt" onchange="handleFileUpload(event, 2)">
+        <button id="startButton" onclick="processFiles()">Começar</button>
+
+        <div id="resultSection" class="hidden">
+            <h2>Processar</h2>
+            <p id="interface"></p>
+            <p id="macAddress"></p>
+            <button class="copy-button" onclick="copyToClipboard('macAddress')"><i class="fas fa-copy"></i> Copiar MAC</button>
+            <p id="serial"></p>
+            <button class="copy-button" onclick="copyToClipboard('serial')"><i class="fas fa-copy"></i> Copiar Serial</button>
+            <button onclick="saveInfo()">Pronto</button>
+            <button onclick="skipInfo()">Depois eu faço</button>
+            <button onclick="restartProcess()">Recomeçar</button>
+            <button onclick="generateExcel()">Gerar Excel</button> <!-- Botão para gerar o Excel -->
+
+            <!-- Barra de progresso -->
+            <div class="progress-bar">
+                <div id="progressBarFill" class="progress-bar-fill">0%</div>
+            </div>
+        </div>
+
+        <div id="skippedItemsSection" class="hidden">
+            <h2>Itens Pulados</h2>
+            <ul id="skippedItemsList"></ul>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
+    <script>
+        let file1Data = [];
+        let file2Data = [];
+        let currentIndex = 0;
+        let processedData = [];
+        let skippedData = [];
+
+        function handleFileUpload(event, fileNumber) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                const data = e.target.result.split('\n').map(line => line.trim().split(/\s+/));
+                if (fileNumber === 1) {
+                    file1Data = data;
+                } else {
+                    file2Data = data;
+                }
+                checkIfReady();
+            };
+
+            reader.readAsText(file);
+        }
+
+        function checkIfReady() {
+            if (file1Data.length > 0 && file2Data.length > 0) {
+                document.getElementById('startButton').classList.add('hidden');
+                document.getElementById('resultSection').classList.remove('hidden');
+                updateProgress();
+                showNextItem();
+            }
+        }
+
+        function showNextItem() {
+            if (currentIndex < file1Data.length) {
+                const macLine = file1Data[currentIndex];
+                const onuId = macLine[1];
+                const interfaceName = macLine[0];
+                const macAddress = macLine[macLine.length - 1];
+                const serialLine = file2Data.find(line => line[1] === onuId);
+
+                if (serialLine) {
+                    document.getElementById('interface').textContent = `Interface: ${interfaceName}`;
+                    document.getElementById('macAddress').textContent = `MAC: ${macAddress}`;
+                    document.getElementById('serial').textContent = `Serial: ${serialLine[2]}`;
+                } else {
+                    alert('Nenhuma correspondência encontrada para o ID ONU: ' + onuId);
+                }
+            } else {
+                alert('Todos os itens foram processados.');
+                document.getElementById('resultSection').classList.add('hidden');
+                showSkippedItems();
+            }
+        }
+
+        function saveInfo() {
+            const interfaceName = document.getElementById('interface').textContent.split(': ')[1];
+            const mac = document.getElementById('macAddress').textContent.split(': ')[1];
+            const serial = document.getElementById('serial').textContent.split(': ')[1];
+            processedData.push({ interfaceName, mac, serial, status: 'Feito' });
+            currentIndex++;
+            updateProgress();
+            showNextItem();
+        }
+
+        function skipInfo() {
+            const interfaceName = document.getElementById('interface').textContent.split(': ')[1];
+            const mac = document.getElementById('macAddress').textContent.split(': ')[1];
+            const serial = document.getElementById('serial').textContent.split(': ')[1];
+            skippedData.push({ interfaceName, mac, serial });
+            currentIndex++;
+            updateProgress();
+            showNextItem();
+        }
+
+        function updateProgress() {
+            const progress = (currentIndex / file1Data.length) * 100;
+            const progressBarFill = document.getElementById('progressBarFill');
+            progressBarFill.style.width = progress + '%';
+            progressBarFill.textContent = Math.floor(progress) + '%';
+        }
+
+        function showSkippedItems() {
+            const skippedItemsList = document.getElementById('skippedItemsList');
+            skippedItemsList.innerHTML = '';
+
+            if (skippedData.length > 0) {
+                document.getElementById('skippedItemsSection').classList.remove('hidden');
+                skippedData.forEach(item => {
+                    const li = document.createElement('li');
+                    li.classList.add('skipped-item');
+                    li.textContent = `Interface: ${item.interfaceName}, MAC: ${item.mac}, Serial: ${item.serial}`;
+                    skippedItemsList.appendChild(li);
+                });
+            } else {
+                alert('Nenhum item pulado.');
+            }
+        }
+
+        function copyToClipboard(elementId) {
+            const text = document.getElementById(elementId).textContent.split(': ')[1];
+            navigator.clipboard.writeText(text);
+        }
+
+        function generateExcel() {
+            const allData = file1Data.map((item) => {
+                const onuId = item[1];
+                const macAddress = item[item.length - 1];
+                const serialLine = file2Data.find(line => line[1] === onuId);
+                const serial = serialLine ? serialLine[2] : 'Não encontrado';
+
+                return {
+                    interfaceName: item[0],
+                    mac: macAddress,
+                    serial: serial,
+                    status: '' // Inicia vazio para permitir a seleção
+                };
+            });
+
+            const ws = XLSX.utils.json_to_sheet(allData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Dados");
+
+            // Adiciona validação de dados (dropdown) para a coluna de status
+            const cellRange = { s: { r: 1, c: 3 }, e: { r: allData.length, c: 3 } }; // A coluna 3 (D) para "Status"
+            const validation = {
+                type: 'list',
+                allowBlank: true,
+                formula1: '"Feito,Nao"',
+                showErrorMessage: true,
+                errorTitle: 'Valor inválido',
+                error: 'Selecione "Feito" ou "Não"'
+            };
+
+            // Adiciona validação de dados em todas as células da coluna de status
+            if (!ws['!dataValidation']) ws['!dataValidation'] = [];
+            ws['!dataValidation'].push({
+                sqref: `${String.fromCharCode(68)}2:${String.fromCharCode(68)}${allData.length + 1}`, // Coluna D
+                ...validation
+            });
+
+            // Gera o arquivo Excel
+            XLSX.writeFile(wb, "dados_processados.xlsx");
+        }
+
+        function restartProcess() {
+            currentIndex = 0;
+            processedData = [];
+            skippedData = [];
+            document.getElementById('skippedItemsSection').classList.add('hidden');
+            updateProgress();
+            showNextItem();
+        }
+    </script>
+</body>
+</html>
