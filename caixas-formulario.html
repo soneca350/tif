@@ -131,6 +131,12 @@
                     <input type="text" id="protocolo" name="Protocolo">
                     <input type="checkbox" class="important-checkbox" id="importantProtocolo">
                 </div>
+
+                <div>
+                    <label for="coordenadas">Coordenadas:</label>
+                    <input type="text" id="coordenadas" name="Coordenadas">
+                    <input type="checkbox" class="important-checkbox" id="importantCoordenadas">
+                </div>
             </form>
         </div>
 
@@ -149,9 +155,12 @@
                 var checkbox = document.getElementById('important' + input.id.charAt(0).toUpperCase() + input.id.slice(1));
                 var valorCampo = input.value.trim();
 
-                // Verifica se já contém asteriscos para evitar duplicação
-                if (checkbox && checkbox.checked && valorCampo !== '') {
-                    // Adiciona asteriscos apenas se não houver no valor
+                if (input.id === 'coordenadas' && valorCampo !== '') {
+                    // Formata as coordenadas como link do Google Maps
+                    var linkGoogleMaps = 'https://www.google.com/maps/place/' + encodeURIComponent(valorCampo);
+                    valorCampo = linkGoogleMaps;
+                    resultado += input.name + ': ' + valorCampo + '<br>';
+                } else if (checkbox && checkbox.checked && valorCampo !== '') {
                     if (!valorCampo.startsWith('**') && !valorCampo.endsWith('**')) {
                         valorCampo = '*' + valorCampo + '*';
                     }
@@ -164,12 +173,13 @@
         }
 
         function copiarResultado() {
-            var range = document.createRange();
-            range.selectNode(document.getElementById('resultado'));
-            window.getSelection().removeAllRanges();
-            window.getSelection().addRange(range);
+            var resultadoTexto = document.getElementById('resultado').innerText;
+            var textarea = document.createElement('textarea');
+            textarea.value = resultadoTexto;
+            document.body.appendChild(textarea);
+            textarea.select();
             document.execCommand('copy');
-            window.getSelection().removeAllRanges();
+            document.body.removeChild(textarea);
             alert('Resultado copiado!');
         }
     </script>
