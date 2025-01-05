@@ -167,7 +167,7 @@
             const employee = employeesByShift[shift];
 
             // Se houver mais de um funcionário no turno, escolhe um aleatoriamente
-            return `${employee[Math.floor(Math.random() * employee.length)]} (${shift})`;
+            return `${employee[Math.floor(Math.random() * employee.length)]} (turno da ${shift})`;
         }
 
         function exportarWebhooks() {
