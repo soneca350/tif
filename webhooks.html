@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Envio de Mensagem para Discord</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        input, textarea, button, select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            background-color: #7289da;
+            color: white;
+            cursor: pointer;
+            border: none;
+        }
+        button:hover {
+            background-color: #5b6eae;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Registrar Webhooks e Enviar Mensagem</h2>
+
+        <form id="webhook-form">
+            <label for="webhook-url">URL do Webhook</label>
+            <input type="text" id="webhook-url" placeholder="Insira a URL do Webhook" required>
+
+            <label for="webhook-description">Descrição do Webhook</label>
+            <input type="text" id="webhook-description" placeholder="Insira a descrição do Webhook" required>
+
+            <button type="button" onclick="registrarWebhook()">Registrar Webhook</button>
+        </form>
+
+        <h3>Escolha um Webhook Registrado</h3>
+        <select id="webhook-select">
+            <option value="">Selecione um Webhook</option>
+        </select>
+
+        <h3>Mensagem</h3>
+        <form id="message-form">
+            <label for="content">Mensagem</label>
+            <textarea id="content" placeholder="Digite sua mensagem" rows="5" required></textarea>
+
+            <button type="button" onclick="enviarMensagem()">Enviar</button>
+        </form>
+
+        <p id="response" style="color: green;"></p>
+
+        <h3>Backup de Webhooks</h3>
+        <button onclick="exportarWebhooks()">Exportar Webhooks</button>
+        <input type="file" id="import-file" accept=".json">
+        <button onclick="importarWebhooks()">Importar Webhooks</button>
+    </div>
+
+    <script>
+        let webhooks = JSON.parse(localStorage.getItem('webhooks')) || [];
+
+        function atualizarSelect() {
+            const select = document.getElementById('webhook-select');
+            select.innerHTML = '<option value="">Selecione um Webhook</option>';
+
+            webhooks.forEach((webhook, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = webhook.descricao;
+                select.appendChild(option);
+            });
+        }
+
+        function registrarWebhook() {
+            const url = document.getElementById('webhook-url').value;
+            const descricao = document.getElementById('webhook-description').value;
+
+            if (url && descricao) {
+                webhooks.push({ url, descricao });
+                localStorage.setItem('webhooks', JSON.stringify(webhooks));
+                atualizarSelect();
+                alert('Webhook registrado com sucesso!');
+            } else {
+                alert('Por favor, preencha todos os campos!');
+            }
+
+            document.getElementById('webhook-url').value = '';
+            document.getElementById('webhook-description').value = '';
+        }
+
+        function enviarMensagem() {
+            const select = document.getElementById('webhook-select');
+            const selectedIndex = select.value;
+
+            if (selectedIndex === '') {
+                alert('Por favor, selecione um Webhook!');
+                return;
+            }
+
+            const webhook = webhooks[selectedIndex];
+            const content = document.getElementById('content').value;
+            const responseElement = document.getElementById('response');
+            const username = getEmployeeByShift();
+
+            const payload = {
+                username: username,
+                content: content
+            };
+
+            fetch(webhook.url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(response => {
+                if (response.ok) {
+                    responseElement.textContent = 'Mensagem enviada com sucesso!';
+                } else {
+                    responseElement.textContent = `Erro: ${response.status} - ${response.statusText}`;
+                    responseElement.style.color = 'red';
+                }
+            })
+            .catch(error => {
+                responseElement.textContent = `Erro: ${error.message}`;
+                responseElement.style.color = 'red';
+            });
+        }
+
+        function getEmployeeByShift() {
+            const employeesByShift = {
+                "madrugada": "Samuel",
+                "manhã": "Luiz Felipe",
+                "tarde": "Nycolle",
+                "noite": ["Antony", "Arthur"]
+            };
+
+            const currentHour = new Date().getHours();
+            let shift = "";
+
+            if (currentHour >= 0 && currentHour < 6) shift = "madrugada";
+            else if (currentHour >= 6 && currentHour < 12) shift = "manhã";
+            else if (currentHour >= 12 && currentHour < 18) shift = "tarde";
+            else shift = "noite";
+
+            const employee = employeesByShift[shift];
+
+            if (Array.isArray(employee)) {
+                return `${employee[Math.floor(Math.random() * employee.length)]} (${shift})`;
+            }
+
+            return `${employee} (${shift})`;
+        }
+
+        function exportarWebhooks() {
+            const json = JSON.stringify(webhooks, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'webhooks_backup.json';
+            link.click();
+        }
+
+        function importarWebhooks() {
+            const fileInput = document.getElementById('import-file');
+            const file = fileInput.files[0];
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        const importedWebhooks = JSON.parse(event.target.result);
+                        webhooks = importedWebhooks;
+                        localStorage.setItem('webhooks', JSON.stringify(webhooks));
+                        atualizarSelect();
+                        alert('Webhooks importados com sucesso!');
+                    } catch (error) {
+                        alert('Erro ao importar os webhooks!');
+                    }
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        // Atualiza o select ao carregar a página
+        atualizarSelect();
+    </script>
+</body>
+</html>
