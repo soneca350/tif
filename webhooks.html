@@ -150,9 +150,9 @@
 
         function getEmployeeByShift() {
             const employeesByShift = {
-                "madrugada": "Samuel",
-                "manhã": "Luiz Felipe",
-                "tarde": ["Nycolle", "Marcelo"]
+                "madrugada": ["Samuel"],
+                "manhã": ["Luiz Felipe"],
+                "tarde": ["Nycolle", "Marcelo"],
                 "noite": ["Antony", "Arthur"]
             };
 
@@ -166,11 +166,8 @@
 
             const employee = employeesByShift[shift];
 
-            if (Array.isArray(employee)) {
-                return `${employee[Math.floor(Math.random() * employee.length)]} (${shift})`;
-            }
-
-            return `${employee} (${shift})`;
+            // Se houver mais de um funcionário no turno, escolhe um aleatoriamente
+            return `${employee[Math.floor(Math.random() * employee.length)]} (${shift})`;
         }
 
         function exportarWebhooks() {
