@@ -65,7 +65,10 @@
         <h3>Mensagem</h3>
         <form id="message-form">
             <label for="content">Mensagem</label>
-            <textarea id="content" placeholder="Digite sua mensagem" rows="5" required></textarea>
+            <textarea id="content" placeholder="Digite sua mensagem" rows="5"></textarea>
+
+            <label for="file">Anexar Arquivo (opcional)</label>
+            <input type="file" id="file" accept=".mp4,.jpg,.png,.gif">
 
             <button type="button" onclick="enviarMensagem()">Enviar</button>
         </form>
@@ -121,18 +124,21 @@
 
             const webhook = webhooks[selectedIndex];
             const content = document.getElementById('content').value;
+            const fileInput = document.getElementById('file');
             const responseElement = document.getElementById('response');
             const username = getEmployeeByShift();
 
-            const payload = {
-                username: username,
-                content: content
-            };
+            const formData = new FormData();
+            if (content) formData.append('content', content);
+            formData.append('username', username);
+
+            if (fileInput.files.length > 0) {
+                formData.append('file', fileInput.files[0]);
+            }
 
             fetch(webhook.url, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: formData
             })
             .then(response => {
                 if (response.ok) {
